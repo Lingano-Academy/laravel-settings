@@ -22,7 +22,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Vocabia\\Settings\\SettingServiceProvider"
+                "Vocabia\\LaravelSettings\\SettingServiceProvider"
             ]
         }
     }
