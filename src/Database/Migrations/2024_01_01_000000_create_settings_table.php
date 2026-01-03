@@ -46,8 +46,6 @@ return new class extends Migration {
 
             $table->unique(['group', 'key']);
         });
-
-        DB::statement("COMMENT ON TABLE \"$tableName\" IS 'Centralized key-value storage for application settings';");
     }
 
     public function down(): void
