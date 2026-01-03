@@ -12,13 +12,42 @@ return new class extends Migration {
 
         Schema::create($tableName, function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->string('key')->unique()->index();
-            $table->text('value')->nullable();
-            $table->jsonb('json_value')->nullable();
-            $table->string('description')->nullable();
-            $table->string('type')->default('string');
+
+            $table->string('group')
+                ->default('general')
+                ->index()
+                ->comment('Category of the setting (e.g., payment, system, notification)');
+
+            $table->string('key')
+                ->unique()
+                ->comment('Unique key for retrieving the setting');
+
+            $table->text('value')
+                ->nullable()
+                ->comment('Stores simple values (string, int, bool, encrypted)');
+
+            $table->jsonb('json_value')
+                ->nullable()
+                ->comment('Stores structured data (array, object) when type is json/array');
+
+            $table->string('type')
+                ->default('string')
+                ->comment('Data type hint: string, integer, boolean, array, encrypted');
+
+            $table->string('description')
+                ->nullable()
+                ->comment('Human readable description for Admin Panel UI');
+
+            $table->boolean('is_locked')
+                ->default(false)
+                ->comment('If true, this setting cannot be deleted or modified by users');
+
             $table->timestamps();
+
+            $table->unique(['group', 'key']);
         });
+
+        DB::statement("COMMENT ON TABLE \"$tableName\" IS 'Centralized key-value storage for application settings';");
     }
 
     public function down(): void

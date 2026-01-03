@@ -3,17 +3,21 @@
 namespace Vocabia\LaravelSettings\Services;
 
 use Illuminate\Support\Facades\Cache;
-use DevoriaX\LaravelSettings\Models\Settings;
+use Vocabia\LaravelSettings\Models\Settings;
 use Illuminate\Support\Facades\Config;
 
 class SettingService
 {
-    public function get($key, $default = null)
+    /**
+     * Get settings using the key
+     */
+    public function get(string $key, $default = null)
     {
         $config = Config::get('settings.cache');
 
+        // If cache is disabled, get directly from database
         if (!($config['enabled'] ?? false)) {
-            return $this->getFromdb($key, $default);
+            return $this->getFromDb($key, $default);
         }
 
         $cacheKey = ($config['prefix'] ?? '') . $key;
@@ -25,19 +29,69 @@ class SettingService
         });
     }
 
+    /*
+     * Save or update settings
+     */
+    public function set(string $key, $value, string $type = null, string $group = 'general'): Settings
+    {
+        /** @var Settings $setting */
+        $setting = Settings::query()->firstOrNew(['key' => $key]);
+
+        // If it's a new record, set the group (if you added the group column)
+        if (!$setting->exists) {
+            $setting->group = $group;
+        }
+
+        // Use the model's smart method for storage
+        $setting->setPayload($value, $type);
+
+        // Clear old cache for this key
+        $this->clearCache($key);
+
+        return $setting;
+    }
+
+    /**
+     * Delete settings
+     */
+    public function delete(string $key): bool
+    {
+        $deleted = Settings::query()->where('key', $key)->delete();
+
+        if ($deleted) {
+            $this->clearCache($key);
+        }
+
+        return (bool)$deleted;
+    }
+
+    /**
+     * Built-in method for reading from database
+     */
     protected function getFromDb($key, $default)
     {
         $setting = Settings::query()->where('key', $key)->first();
 
-        if (!$setting) return $default;
+        if (!$setting) {
+            return $default;
+        }
 
-        return $setting->json_value ?? $setting->value;
+        // Important change: use payload instead of manually checking columns
+        // The model decides itself whether to return a JSON value, encrypted or plain
+        return $setting->payload;
     }
 
+    /**
+     * Clearing the cache of a specific key
+     */
     public function clearCache($key): void
     {
-        $prefix = Config::get('settings.cache.prefix', '');
-        $store = Config::get('settings.cache.store', 'file');
-        Cache::store($store)->forget($prefix . $key);
+        $config = Config::get('settings.cache');
+
+        if ($config['enabled'] ?? false) {
+            $prefix = $config['prefix'] ?? '';
+            $store = $config['store'] ?? 'file';
+            Cache::store($store)->forget($prefix . $key);
+        }
     }
 }

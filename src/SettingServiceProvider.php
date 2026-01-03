@@ -2,7 +2,7 @@
 
 namespace Vocabia\LaravelSettings;
 
-use DevoriaX\LaravelSettings\Services\SettingService;
+use Vocabia\LaravelSettings\Services\SettingService;
 use Illuminate\Support\ServiceProvider;
 
 class SettingServiceProvider extends ServiceProvider
