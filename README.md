@@ -64,6 +64,195 @@ Run migrations:
 php artisan migrate
 ```
 
+## Artisan Commands
+
+### Setup Commands
+
+#### Publish Configuration Files
+
+```bash
+# Publish the settings configuration file
+php artisan vendor:publish --tag=settings-config
+
+# This creates config/vocabia_settings.php in your application
+```
+
+#### Publish and Run Migrations
+
+```bash
+# Publish database migrations
+php artisan vendor:publish --tag=settings-migrations
+
+# Run all pending migrations (including settings table)
+php artisan migrate
+
+# Run migrations with step-by-step feedback
+php artisan migrate --step
+
+# Rollback the last batch of migrations
+php artisan migrate:rollback
+
+# Rollback all migrations
+php artisan migrate:reset
+
+# Rollback all migrations and run them again
+php artisan migrate:refresh
+
+# Rollback and re-run all migrations with seeders
+php artisan migrate:refresh --seed
+```
+
+### Database Interaction via Tinker
+
+```bash
+# Open the interactive shell
+php artisan tinker
+
+# Inside tinker, you can manage settings:
+>>> $setting = new \Vocabia\LaravelSettings\Models\VocabiaSettings();
+>>> $setting->key = 'app_name';
+>>> $setting->value = 'My Application';
+>>> $setting->type = 'string';
+>>> $setting->description = 'Application name';
+>>> $setting->save();
+
+# Or use create method:
+>>> \Vocabia\LaravelSettings\Models\VocabiaSettings::create([
+...     'key' => 'api_key',
+...     'value' => 'secret-key-123',
+...     'type' => 'string',
+...     'description' => 'API Key'
+... ]);
+
+# Query settings:
+>>> \Vocabia\LaravelSettings\Models\VocabiaSettings::all();
+>>> \Vocabia\LaravelSettings\Models\VocabiaSettings::where('key', 'app_name')->first();
+
+# Clear cache for a setting:
+>>> app('setting')->clearCache('app_name');
+```
+
+### Cache Management Commands
+
+```bash
+# Clear all cache
+php artisan cache:clear
+
+# Clear specific cache tags (settings)
+php artisan cache:clear --tags
+
+# Forget a specific cache key
+php artisan cache:forget setting_app_name
+
+# Flush all cache (Redis, File, etc.)
+php artisan cache:flush
+```
+
+### Development Commands
+
+```bash
+# Check the database status
+php artisan db:show
+
+# List all tables
+php artisan db:table settings
+
+# Create a backup before making changes
+php artisan db:wipe
+
+# View pending migrations
+php artisan migrate:status
+```
+
+### Model Inspection
+
+```bash
+# Open tinker to inspect the Settings model
+php artisan tinker
+
+# Show all columns in settings table
+>>> \Vocabia\LaravelSettings\Models\VocabiaSettings::first()?->getAttributes();
+
+# Count all settings
+>>> \Vocabia\LaravelSettings\Models\VocabiaSettings::count();
+
+# Get column information
+>>> \Vocabia\LaravelSettings\Models\VocabiaSettings::all()->map(fn($s) => $s->only(['key', 'type', 'created_at']));
+```
+
+### Practical Artisan Workflows
+
+#### Initial Setup
+
+```bash
+# Install package
+composer require vocabia/laravel-settings
+
+# Publish configuration and migrations
+php artisan vendor:publish --tag=settings-config
+php artisan vendor:publish --tag=settings-migrations
+
+# Run migrations to create settings table
+php artisan migrate
+
+# Verify table creation
+php artisan db:table settings
+```
+
+#### Add New Settings via Tinker
+
+```bash
+php artisan tinker
+
+# Add API rate limit setting
+>>> \Vocabia\LaravelSettings\Models\VocabiaSettings::create([
+...     'key' => 'api.rate_limit',
+...     'value' => '1000',
+...     'type' => 'string',
+...     'description' => 'API requests per hour'
+... ]);
+
+# Add feature flags
+>>> \Vocabia\LaravelSettings\Models\VocabiaSettings::create([
+...     'key' => 'features.new_ui',
+...     'json_value' => ['enabled' => true, 'beta' => false],
+...     'type' => 'json',
+...     'description' => 'New UI feature toggle'
+... ]);
+
+# Exit tinker
+>>> exit
+```
+
+#### Update Settings and Clear Cache
+
+```bash
+php artisan tinker
+
+# Update a setting
+>>> $setting = \Vocabia\LaravelSettings\Models\VocabiaSettings::where('key', 'api.rate_limit')->first();
+>>> $setting->update(['value' => '2000']);
+>>> app('setting')->clearCache('api.rate_limit');
+
+# Exit tinker
+>>> exit
+
+# Clear all settings cache
+php artisan cache:clear
+```
+
+#### Export/Backup Settings
+
+```bash
+# Inside tinker, export all settings to JSON
+php artisan tinker
+
+>>> $settings = \Vocabia\LaravelSettings\Models\VocabiaSettings::all()
+...     ->map(fn($s) => ['key' => $s->key, 'value' => $s->value, 'type' => $s->type])
+...     ->toJson();
+>>> file_put_contents('settings_backup.json', $settings);
+```
+
 ## Configuration
 
 The configuration file is located at `config/settings.php`. Here's what you can customize:
@@ -88,7 +277,7 @@ return [
 ### Getting a Setting
 
 ```php
-use Vocabia\LaravelSettings\Services\SettingService;
+use Vocabia\LaravelSettings\Services\VocabiaSettingService;
 
 $settingService = app('setting');
 
@@ -102,10 +291,10 @@ $value = $settingService->get('api_key');
 ### Creating a Setting
 
 ```php
-use Vocabia\LaravelSettings\Models\Settings;
+use Vocabia\LaravelSettings\Models\VocabiaSettings;
 
 // Store a simple string value
-Settings::create([
+VocabiaSettings::create([
     'key' => 'app_name',
     'value' => 'My Application',
     'type' => 'string',
@@ -113,7 +302,7 @@ Settings::create([
 ]);
 
 // Store a JSON value
-Settings::create([
+VocabiaSettings::create([
     'key' => 'feature_flags',
     'json_value' => [
         'new_ui' => true,
@@ -177,7 +366,7 @@ The `settings` table includes the following columns:
 ### Enable/Disable Caching
 
 ```php
-// config/settings.php
+// config/vocabia_settings.php
 'cache' => [
     'enabled' => false, // Disable caching
     // ...
@@ -187,7 +376,7 @@ The `settings` table includes the following columns:
 ### Using Different Cache Stores
 
 ```php
-// config/settings.php
+// config/vocabia_settings.php
 'cache' => [
     'enabled' => true,
     'store' => 'redis',    // Use Redis
@@ -287,12 +476,44 @@ $paginated = Settings::paginate(15);
 - **Database Indexes**: The `key` column is indexed for fast lookups
 - **ULID Keys**: Uses ULID for better database performance vs UUID
 
+## Quick Command Reference
+
+| Task | Command |
+|------|---------|
+| **Installation & Setup** | |
+| Install package | `composer require vocabia/laravel-settings` |
+| Publish config | `php artisan vendor:publish --tag=settings-config` |
+| Publish migrations | `php artisan vendor:publish --tag=settings-migrations` |
+| Run migrations | `php artisan migrate` |
+| **Database & Migrations** | |
+| Migrate with steps | `php artisan migrate --step` |
+| Rollback last batch | `php artisan migrate:rollback` |
+| Migration status | `php artisan migrate:status` |
+| View table schema | `php artisan db:table settings` |
+| **Settings Management (via Tinker)** | |
+| Open interactive shell | `php artisan tinker` |
+| Create new setting | `\Vocabia\LaravelSettings\Models\VocabiaSettings::create([...])` |
+| Get all settings | `\Vocabia\LaravelSettings\Models\VocabiaSettings::all()` |
+| Query by key | `\Vocabia\LaravelSettings\Models\VocabiaSettings::where('key', 'name')->first()` |
+| Count settings | `\Vocabia\LaravelSettings\Models\VocabiaSettings::count()` |
+| Delete setting | `\Vocabia\LaravelSettings\Models\VocabiaSettings::where('key', 'name')->delete()` |
+| **Cache Management** | |
+| Clear all cache | `php artisan cache:clear` |
+| Flush cache completely | `php artisan cache:flush` |
+| Forget specific key | `php artisan cache:forget setting_app_name` |
+| Clear cache with tags | `php artisan cache:clear --tags` |
+
 ## Troubleshooting
 
 ### Settings Not Updating
 Ensure cache is cleared after updates:
 ```php
 $settingService->clearCache('your_key');
+```
+
+Or via artisan:
+```bash
+php artisan cache:clear
 ```
 
 ### Wrong Cache Store
@@ -309,6 +530,55 @@ Ensure migrations are published and run:
 ```bash
 php artisan vendor:publish --tag=settings-migrations
 php artisan migrate
+```
+
+Check migration status:
+```bash
+php artisan migrate:status
+```
+
+### Table Not Found
+If you get a "table not found" error when running migrations:
+```bash
+# Publish the migrations if not already done
+php artisan vendor:publish --tag=settings-migrations
+
+# Run pending migrations
+php artisan migrate
+
+# Verify the table was created
+php artisan db:table settings
+```
+
+### Tinker Command Not Found
+Ensure Laravel Tinker is installed:
+```bash
+composer require laravel/tinker
+php artisan tinker
+```
+
+### Configuration Not Loaded
+If the configuration is not being loaded properly:
+```bash
+# Clear config cache
+php artisan config:clear
+
+# Republish the configuration
+php artisan vendor:publish --tag=settings-config --force
+
+# Clear application cache
+php artisan cache:clear
+```
+
+### Settings Cached Incorrectly
+To clear all settings-related cache entries:
+```bash
+php artisan tinker
+>>> app('setting')->clearCache('*')
+>>> exit
+
+# Or use artisan
+php artisan cache:flush
 ```
 
 ## API Reference

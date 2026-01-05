@@ -3,10 +3,10 @@
 namespace Vocabia\LaravelSettings\Services;
 
 use Illuminate\Support\Facades\Cache;
-use Vocabia\LaravelSettings\Models\Settings;
+use Vocabia\LaravelSettings\Models\VocabiaSettings;
 use Illuminate\Support\Facades\Config;
 
-class SettingService
+class VocabiaSettingService
 {
     /**
      * Get settings using the key
@@ -32,10 +32,10 @@ class SettingService
     /*
      * Save or update settings
      */
-    public function set(string $key, $value, string $type = null, string $group = 'general'): Settings
+    public function set(string $key, $value, string $type = null, string $group = 'general'): VocabiaSettings
     {
-        /** @var Settings $setting */
-        $setting = Settings::query()->firstOrNew(['key' => $key]);
+        /** @var VocabiaSettings $setting */
+        $setting = VocabiaSettings::query()->firstOrNew(['key' => $key]);
 
         // If it's a new record, set the group (if you added the group column)
         if (!$setting->exists) {
@@ -56,7 +56,7 @@ class SettingService
      */
     public function delete(string $key): bool
     {
-        $deleted = Settings::query()->where('key', $key)->delete();
+        $deleted = VocabiaSettings::query()->where('key', $key)->delete();
 
         if ($deleted) {
             $this->clearCache($key);
@@ -70,7 +70,7 @@ class SettingService
      */
     protected function getFromDb($key, $default)
     {
-        $setting = Settings::query()->where('key', $key)->first();
+        $setting = VocabiaSettings::query()->where('key', $key)->first();
 
         if (!$setting) {
             return $default;

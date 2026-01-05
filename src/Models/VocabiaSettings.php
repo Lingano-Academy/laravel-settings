@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 
-class Settings extends Model
+class VocabiaSettings extends Model
 {
     use HasUlids;
 
