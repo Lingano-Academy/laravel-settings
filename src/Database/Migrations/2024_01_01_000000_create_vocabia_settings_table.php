@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Config;
 return new class extends Migration {
     public function up(): void
     {
-        $tableName = Config::get('settings.table_name', 'settings');
+        $tableName = Config::get('vocabia_settings.table_name', 'settings');
 
         Schema::create($tableName, function (Blueprint $table) {
             $table->ulid('id')->primary();

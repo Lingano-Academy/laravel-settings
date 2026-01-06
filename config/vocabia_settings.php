@@ -1,9 +1,9 @@
 <?php
 
 return [
-    'table_name' => 'settings',
+    'table_name' => env('VOCABIA_SETTINGS_TABLE', 'vocabia_settings'),
 
-    'load_migrations' => env('VOCABIA_SETTINGS_LOAD_MIGRATIONS', true),
+    'load_migrations' => env('VOCABIA_SETTINGS_LOAD_MIGRATIONS', false),
 
     'cache' => [
         'enabled' => true,
