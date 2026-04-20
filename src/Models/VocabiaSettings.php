@@ -21,7 +21,7 @@ class VocabiaSettings extends Model
 
     public function getTable()
     {
-        return Config::get('settings.table_name', parent::getTable());
+        return Config::get('vocabia_settings.table_name', parent::getTable());
     }
 
 
